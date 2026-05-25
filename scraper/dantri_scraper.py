@@ -104,9 +104,9 @@ def scrape_article(url):
         res = requests.get(url, headers=HEADERS)
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        title_tag = soup.select_one('h1.singular-title')
-        desc_tag = soup.select_one('h2.singular-sapo')
-        content_tag = soup.select_one('div.singular-content')
+        title_tag = soup.select_one('h1.title-page, h1.singular-title, h1.title-detail, h1')
+        desc_tag = soup.select_one('h2.sapo, h2.singular-sapo, div.sapo')
+        content_tag = soup.select_one('div.singular-content, div.content-detail, div.article-content, div.detail-content')
         
         if not content_tag or not title_tag:
             print(f"[!] Bỏ qua do không đúng cấu trúc bài viết: {url}")
@@ -118,7 +118,7 @@ def scrape_article(url):
         # Lấy Category từ Breadcrumbs
         category_name = "Tin tức"
         category_id = "tin-tuc"
-        breadcrumbs = soup.select('.breadcrumbs a, .breadcrumb a')
+        breadcrumbs = soup.select('.breadcrumbs a, .breadcrumb a, [class*="breadcrumb"] a')
         valid_bc = None
         if len(breadcrumbs) > 1:
             valid_bc = breadcrumbs[1]
