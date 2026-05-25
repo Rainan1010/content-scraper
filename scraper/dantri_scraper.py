@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 import math
 import random
 import re
+from dotenv import load_dotenv
+
+# Tự động load biến môi trường từ file .env
+load_dotenv()
 
 # Headers giả lập trình duyệt
 HEADERS = {
@@ -31,7 +35,7 @@ def init_firebase():
                 raise ValueError("Không tìm thấy Firebase Credentials!")
 
         firebase_admin.initialize_app(cred, {
-            'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'newsapp-4b2e0.appspot.com') # Thay bằng bucket thực tế
+            'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'newsapp-4b2e0.firebasestorage.app') # Thay bằng bucket thực tế
         })
     return firestore.client(), storage.bucket()
 
@@ -105,8 +109,8 @@ def scrape_article(url):
         soup = BeautifulSoup(res.text, 'html.parser')
         
         title_tag = soup.select_one('h1.title-page, h1.singular-title, h1.title-detail, h1')
-        desc_tag = soup.select_one('h2.sapo, h2.singular-sapo, div.sapo')
-        content_tag = soup.select_one('div.singular-content, div.content-detail, div.article-content, div.detail-content')
+        desc_tag = soup.select_one('h2.sapo, h2.singular-sapo, div.sapo, h2')
+        content_tag = soup.select_one('article, div.singular-content, div.content-detail, div.article-content, div.detail-content')
         
         if not content_tag or not title_tag:
             print(f"[!] Bỏ qua do không đúng cấu trúc bài viết: {url}")
@@ -161,7 +165,7 @@ def scrape_article(url):
         # Xử lý nội dung ảnh
         image_urls = []
         for img in content_tag.find_all('img'):
-            original_src = img.get('data-src') or img.get('src')
+            original_src = img.get('data-original') or img.get('data-src') or img.get('src')
             if original_src and original_src.startswith('http'):
                 new_url = upload_img(original_src)
                 img['src'] = new_url
