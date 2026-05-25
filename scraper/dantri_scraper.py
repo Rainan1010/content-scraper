@@ -186,6 +186,7 @@ def scrape_article(url):
             "title": title,
             "description": description,
             "content": str(content_tag),
+            "source": "Dân Trí",
             "sourceUrl": url,
             "categoryId": category_id,
             "categoryName": category_name,

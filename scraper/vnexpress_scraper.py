@@ -7,6 +7,10 @@ import os
 from datetime import datetime, timezone
 import math
 import random
+from dotenv import load_dotenv
+
+# Tự động load biến môi trường từ file .env
+load_dotenv()
 
 # Headers giả lập trình duyệt
 HEADERS = {
@@ -30,7 +34,7 @@ def init_firebase():
                 raise ValueError("Không tìm thấy Firebase Credentials!")
 
         firebase_admin.initialize_app(cred, {
-            'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'newsapp-4b2e0.appspot.com') # Thay bằng bucket thực tế
+            'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET', 'newsapp-4b2e0.firebasestorage.app') # Thay bằng bucket thực tế
         })
     return firestore.client(), storage.bucket()
 
@@ -96,7 +100,7 @@ def scrape_article(url):
 
     print(f"[*] Đang cào: {url}")
     try:
-        res = requests.get(url, headers=HEADERS)
+        res = requests.get(url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(res.text, 'html.parser')
         
         title_tag = soup.select_one('h1.title-detail')
@@ -162,6 +166,7 @@ def scrape_article(url):
             "title": title,
             "description": description,
             "content": str(content_tag),
+            "source": "VnExpress",
             "sourceUrl": url,
             "categoryId": category_id,
             "categoryName": category_name,
