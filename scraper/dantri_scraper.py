@@ -220,3 +220,4 @@ if __name__ == "__main__":
         scrape_article(link)
     
     print("=== HOÀN TẤT ===")
+
