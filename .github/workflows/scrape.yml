@@ -1,0 +1,42 @@
+name: Scrape News
+
+on:
+  schedule:
+    - cron: '0 */3 * * *' # Chạy mỗi 3 tiếng một lần
+  workflow_dispatch: # Cho phép chạy thủ công trên Github
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        cd scraper
+        pip install -r requirements.txt
+
+    - name: Run scraper
+      env:
+        FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      run: |
+        cd scraper
+        shopt -s nullglob
+        files=(*.py)
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "No python scripts found in scraper directory."
+        else
+          for f in "${files[@]}"; do
+            echo "Running $f..."
+            python "$f"
+          done
+        fi
