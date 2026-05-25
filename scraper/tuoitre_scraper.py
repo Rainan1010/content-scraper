@@ -106,9 +106,9 @@ def scrape_article(url):
         res = requests.get(url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        title_tag = soup.select_one('h1.article-title, h1.title-detail, h1.detail-title, h1')
-        desc_tag = soup.select_one('h2.article-sapo, h2.sapo, div.sapo, p.sapo, h2')
-        content_tag = soup.select_one('div.article-content, div.content-detail-body, div.fck, article')
+        title_tag = soup.select_one('h1.detail-title, h1.article-title, h1.title-detail, h1')
+        desc_tag = soup.select_one('h2.detail-sapo, h2.article-sapo, h2.sapo, div.sapo, p.sapo, h2')
+        content_tag = soup.select_one('div.detail-content, div.article-content, div.content-detail-body, div.fck, article')
         
         if not content_tag or not title_tag:
             print(f"[!] Bỏ qua do không đúng cấu trúc bài viết: {url}")
@@ -137,18 +137,24 @@ def scrape_article(url):
 
         # Tác giả
         author_name = ""
-        author_tag = soup.select_one('.author-name, .author, [class*="author"]')
-        if author_tag:
-            author_name = author_tag.get_text(strip=True)
-        else:
-            # Fallback quét phần cuối bài viết
-            last_paragraphs = content_tag.find_all(['p', 'div'])
-            if last_paragraphs:
-                for p in reversed(last_paragraphs):
-                    p_text = p.get_text(strip=True)
-                    if p.find('strong') and len(p_text) < 40 and not p_text.startswith('Video:'):
-                        author_name = p_text
-                        break
+        # Thử lấy từ meta dable:author trước
+        meta_author = soup.select_one('meta[property="dable:author"]')
+        if meta_author:
+            author_name = meta_author.get('content', '').strip()
+
+        if not author_name:
+            author_tag = soup.select_one('.detail-author .name, .author-info .name, .author-name, .author, [class*="author"]')
+            if author_tag:
+                author_name = author_tag.get_text(strip=True)
+            else:
+                # Fallback quét phần cuối bài viết
+                last_paragraphs = content_tag.find_all(['p', 'div'])
+                if last_paragraphs:
+                    for p in reversed(last_paragraphs):
+                        p_text = p.get_text(strip=True)
+                        if p.find('strong') and len(p_text) < 40 and not p_text.startswith('Video:'):
+                            author_name = p_text
+                            break
 
         # Lấy Thumbnail từ thẻ meta og:image
         meta_img = soup.select_one('meta[property="og:image"]')
