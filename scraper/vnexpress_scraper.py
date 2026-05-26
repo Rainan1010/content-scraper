@@ -196,12 +196,20 @@ def scrape_article(url):
         print(f"[!] Lỗi khi cào {url}: {e}")
 
 if __name__ == "__main__":
+    import concurrent.futures
     print("=== BẮT ĐẦU CÀO VNEXPRESS 24H ===")
     links = get_vnexpress_links()
     print(f"Tìm thấy {len(links)} link bài viết.")
     
     # Cào tối đa 10 bài mới nhất mỗi lần chạy để tránh quá tải
     for link in links[:10]:
-        scrape_article(link)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(scrape_article, link)
+            try:
+                future.result(timeout=60)  # Giới hạn 1 bài viết tối đa 60 giây (1 phút)
+            except concurrent.futures.TimeoutError:
+                print(f"[!] Quá thời gian quy định (1 phút) khi cào bài viết: {link}")
+            except Exception as e:
+                print(f"[!] Lỗi khi cào bài viết {link}: {e}")
     
     print("=== HOÀN TẤT ===")
