@@ -196,8 +196,8 @@ if __name__ == "__main__":
     links = get_vnexpress_links()
     print(f"Tìm thấy {len(links)} link bài viết.")
     
-    # Cào tối đa 20 bài mới nhất mỗi lần chạy để tránh quá tải
-    for link in links[:20]:
+    # Cào tối đa 10 bài mới nhất mỗi lần chạy để tránh quá tải
+    for link in links[:10]:
         scrape_article(link)
     
     print("=== HOÀN TẤT ===")
