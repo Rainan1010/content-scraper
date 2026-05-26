@@ -47,8 +47,12 @@ except Exception as e:
 
 def is_duplicate(url):
     if not db: return False
-    docs = db.collection('articles').where('sourceUrl', '==', url).limit(1).get()
-    return len(docs) > 0
+    try:
+        docs = db.collection('articles').where('sourceUrl', '==', url).limit(1).get(timeout=10)
+        return len(docs) > 0
+    except Exception as e:
+        print(f"Lỗi kiểm tra trùng lặp cho {url}: {e}")
+        return False
 
 def upload_img(url, folder_name, default_ext='jpg'):
     if not bucket or not url.startswith('http'): return url
@@ -140,16 +144,16 @@ def scrape_article(url):
 
         # Tác giả
         author_name = ""
-        author_tag = soup.select_one('.author-name, .author, .singular-author')
+        author_tag = soup.select_one('.author-name, .author, .singular-author, a[rel="author"], a[href*="/tac-gia/"]')
         if author_tag:
             author_name = author_tag.get_text(strip=True)
         else:
-            # Fallback quét phần cuối bài viết
+            # Fallback quét phần cuối bài viết (chỉ kiểm tra tối đa 3 đoạn cuối cùng)
             last_paragraphs = content_tag.find_all(['p', 'div'])
             if last_paragraphs:
-                for p in reversed(last_paragraphs):
+                for p in reversed(last_paragraphs[-3:]):
                     p_text = p.get_text(strip=True)
-                    if p.find('strong') and len(p_text) < 40 and not p_text.startswith('Video:'):
+                    if p.find('strong') and len(p_text) < 40 and not p_text.startswith('Video:') and not any(char in p_text for char in [':', ',', '.', '?']):
                         author_name = p_text
                         break
 
@@ -212,13 +216,21 @@ def scrape_article(url):
         print(f"[!] Lỗi khi cào {url}: {e}")
 
 if __name__ == "__main__":
+    import concurrent.futures
     print("=== BẮT ĐẦU CÀO DÂN TRÍ ===")
     links = get_dantri_links()
     print(f"Tìm thấy {len(links)} link bài viết.")
     
     # Cào tối đa 10 bài mới nhất mỗi lần chạy để tránh quá tải
     for link in links[:10]:
-        scrape_article(link)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(scrape_article, link)
+            try:
+                future.result(timeout=60)  # Giới hạn 1 bài viết tối đa 60 giây (1 phút)
+            except concurrent.futures.TimeoutError:
+                print(f"[!] Quá thời gian quy định (1 phút) khi cào bài viết: {link}")
+            except Exception as e:
+                print(f"[!] Lỗi khi cào bài viết {link}: {e}")
     
     print("=== HOÀN TẤT ===")
 

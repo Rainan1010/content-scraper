@@ -37,6 +37,6 @@ jobs:
         else
           for f in "${files[@]}"; do
             echo "Running $f..."
-            python "$f"
+            python -u "$f"
           done
         fi
