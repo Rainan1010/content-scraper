@@ -49,14 +49,14 @@ def is_duplicate(url):
     docs = db.collection('articles').where('sourceUrl', '==', url).limit(1).get()
     return len(docs) > 0
 
-def upload_img(url, default_ext='jpg'):
+def upload_img(url, folder_name, default_ext='jpg'):
     if not bucket or not url.startswith('http'): return url
     try:
         res = requests.get(url, headers=HEADERS, timeout=10)
         if res.status_code == 200:
             ext = url.split('.')[-1].split('?')[0]
             if not ext or len(ext) > 4: ext = default_ext
-            path = f"articles/vnexpress_{uuid.uuid4().hex[:10]}/{uuid.uuid4().hex}.{ext}"
+            path = f"articles/{folder_name}/{uuid.uuid4().hex}.{ext}"
             blob = bucket.blob(path)
             blob.upload_from_string(res.content, content_type=res.headers.get('Content-Type', f'image/{ext}'))
             blob.make_public()
@@ -98,6 +98,7 @@ def scrape_article(url):
         print(f"[-] Bỏ qua (Đã tồn tại): {url}")
         return
 
+    doc_id = url.split('/')[-1].replace('.html', '')
     print(f"[*] Đang cào: {url}")
     try:
         res = requests.get(url, headers=HEADERS, timeout=10)
@@ -136,7 +137,7 @@ def scrape_article(url):
         meta_img = soup.select_one('meta[property="og:image"]')
         thumbnail_url = meta_img.get('content') if meta_img else ""
         if thumbnail_url:
-            thumbnail_url = upload_img(thumbnail_url)
+            thumbnail_url = upload_img(thumbnail_url, doc_id)
 
         # Dọn dẹp HTML rác
         for trash in content_tag.find_all(['video', 'iframe', 'script', 'style', 'div.box_tinlienquan']):
@@ -147,7 +148,7 @@ def scrape_article(url):
         for img in content_tag.find_all('img'):
             original_src = img.get('data-src') or img.get('src')
             if original_src and original_src.startswith('http'):
-                new_url = upload_img(original_src)
+                new_url = upload_img(original_src, doc_id)
                 img['src'] = new_url
                 image_urls.append(new_url)
                 for attr in ['data-src', 'srcset', 'class', 'sizes']:
@@ -159,7 +160,6 @@ def scrape_article(url):
         reading_time = max(1, math.ceil(word_count / 200))
 
         # Build Document
-        doc_id = url.split('/')[-1].replace('.html', '')
         now = datetime.now(timezone.utc)
         
         data = {
