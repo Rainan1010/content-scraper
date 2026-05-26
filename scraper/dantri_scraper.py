@@ -47,8 +47,12 @@ except Exception as e:
 
 def is_duplicate(url):
     if not db: return False
-    docs = db.collection('articles').where('sourceUrl', '==', url).limit(1).get()
-    return len(docs) > 0
+    try:
+        docs = db.collection('articles').where('sourceUrl', '==', url).limit(1).get(timeout=10)
+        return len(docs) > 0
+    except Exception as e:
+        print(f"Lỗi kiểm tra trùng lặp cho {url}: {e}")
+        return False
 
 def upload_img(url, folder_name, default_ext='jpg'):
     if not bucket or not url.startswith('http'): return url
